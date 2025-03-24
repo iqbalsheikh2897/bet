@@ -721,6 +721,7 @@ async def admin_view(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "👉 /fixslots <number> - Set the total number of betting slots.\n"
         "👉 /showall - Show all users with count.\n"
         "👉 /open - Open betting for users.\n"
+        "👉 /broadcast - Broadcast message.\n"
         "👉 /close - Close betting for users.\n\n"
         "Use these commands wisely! 🛠️",
         parse_mode="Markdown"
@@ -905,6 +906,7 @@ def main():
     application.add_handler(CommandHandler("adminview", admin_view)) 
     application.add_handler(CommandHandler("broadcast", broadcast))
     application.add_handler(CommandHandler("showall", show_all_users))
+    application.add_handler(CommandHandler("help", help_command))
     
     # Start the bot
     application.run_polling()
