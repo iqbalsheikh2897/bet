@@ -98,7 +98,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "2. Each user can only place one bet until the betting round is reset.\n"
         "3. After placing a bet, you must send a payment screenshot for approval.\n"
         "4. Only approved bets will fill the available slots.\n"
-        "5. If your selected flip wins get 2x"
+        "5. If your selected flip wins get 2x\n"
         "6. 50rs is limited to bet winners get 100₹ for all\n\n"
         "<b>Available Commands:</b>\n"
         "👉 /start - Start the bot and see the welcome message.\n"
