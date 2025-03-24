@@ -13,3 +13,4 @@ pymongo
 psycopg2-binary
 qrcode
 pillow
+dotenv
