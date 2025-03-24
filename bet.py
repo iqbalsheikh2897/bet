@@ -363,6 +363,56 @@ async def view_pending_confirmations(update: Update, context: ContextTypes.DEFAU
             )
         await update.message.reply_text(message, parse_mode="Markdown")
 
+async def check_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.from_user.id
+    user_data = users_collection.find_one({"user_id": user_id})
+    
+    if not user_data:
+        await update.message.reply_text(
+            "🚫 *Please start the bot with /start first.*",
+            parse_mode="Markdown"
+        )
+        return
+
+    # Check if the user has placed a bet
+    if not user_data.get("bet"):
+        await update.message.reply_text(
+            "🚫 *No Bet Placed!*\n\n"
+            "You have not placed any bet yet. Use the /bet command to place your bet.",
+            parse_mode="Markdown"
+        )
+        return
+
+    user_status = user_data["status"]
+    user_bet = user_data["bet"]  # Get the user's bet choice
+    if user_status == "approved":
+        await update.message.reply_text(
+            f"✅ *Payment Approved!*\n\n"
+            f"Your payment has been approved. You chose *{user_bet.upper()}*.\n"
+            "Thank you for participating! 🎉\n\n"
+            "Good luck! 🍀",
+            parse_mode="Markdown"
+        )
+    elif user_status == "disapproved":
+        await update.message.reply_text(
+            "❌ *Payment Disapproved!*\n\n"
+            "Your payment has been disapproved. Please contact the admin for further details. 📞",
+            parse_mode="Markdown"
+        )
+    elif user_status == "waiting":
+        await update.message.reply_text(
+            "⏳ *Payment Pending Approval*\n\n"
+            f"You chose *{user_bet.upper()}*.\n"
+            "Your payment screenshot is under review. Please wait for the admin to approve it. 🕒",
+            parse_mode="Markdown"
+        )
+    else:
+        await update.message.reply_text(
+            "🚫 *Unknown Status!*\n\n"
+            "Your status is unclear. Please contact the admin for assistance. 📞",
+            parse_mode="Markdown"
+        )
+
 async def declare_result(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.from_user.id != ADMIN_ID:
         await update.message.reply_text(
@@ -415,26 +465,73 @@ async def declare_result(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Identify winners
     winners = [user["user_id"] for user in users_collection.find({"bet": result, "status": "approved"}) if 'user_id' in user]
     winners_collection.update_one({}, {"$set": {"winners": winners}}, upsert=True)
+    
+    # Reset available slots after the results are declared
     settings_collection.update_one({}, {"$set": {"available_slots": settings_collection.find_one()["total_slots"]}})
 
 async def view_results(update: Update, context: ContextTypes.DEFAULT_TYPE):
     results_data = results_collection.find_one()
-    settings = settings_collection.find_one()
+    settings_data = settings_collection.find_one()  # Fetch settings data
+
     if results_data["heads"] == 0 and results_data["tails"] == 0:
+        # If no results yet, show the announcement time if it's set
+        announcement_time = settings_data.get("result_announcement_time", "Not set")
         await update.message.reply_text(
             "🎲 *Results Status*\n\n"
             "📢 The results are not declared yet.\n"
+            f"🕒 *Result Announcement Time*: {announcement_time}\n\n"
             "Check back later! 🚀",
             parse_mode="Markdown"
         )
     else:
+        announcement_time = settings_data.get("result_announcement_time", "Not set")  # Get announcement time
         await update.message.reply_text(
             "🎲 *Results Declared!*\n\n"
             f"✅ *Heads*: {results_data['heads']} wins\n"
             f"✅ *Tails*: {results_data['tails']} wins\n\n"
+            f"🕒 *Result Announcement Time*: {announcement_time}\n\n"  # Include the announcement time
             "Thank you for participating! 🎉",
             parse_mode="Markdown"
         )
+
+async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.from_user.id != ADMIN_ID:
+        await update.message.reply_text("You are not authorized to perform this action.")
+        return
+
+    # Reset only users who have placed bets or made payments
+    users_collection.update_many({"bet": {"$ne": None}}, {"$set": {"bet": None, "status": None, "payment_attempts": 0}})
+    pending_confirmations_collection.delete_many({})
+    winners_collection.update_one({}, {"$set": {"winners": []}})
+    results_collection.update_one({}, {"$set": {"heads": 0, "tails": 0}})
+    
+    # Reset slots, next betting time, and result announcement time
+    settings_collection.update_one({}, {
+        "$set": {
+            "available_slots": settings_collection.find_one()["total_slots"],
+            "next_betting_time": None,
+            "result_announcement_time": None
+        }
+    })
+
+    # Notify all users
+    for user in users_collection.find():
+        try:
+            await context.bot.send_message(
+                chat_id=user["user_id"],
+                text="ℹ️ *The betting round has been reset!*\n\n"
+                     "You can now place a new bet using the /bet command. Good luck! 🍀",
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            logger.error(f"Failed to send reset notification to user {user.get('user_id', 'unknown')}: {e}")
+
+    await update.message.reply_text(
+        "✅ *Reset Complete!*\n\n"
+        "All participants, results, next betting time, and result announcement time have been reset.\n"
+        "Users have been notified.",
+        parse_mode="Markdown"
+    )
 
 async def view_participants(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.from_user.id != ADMIN_ID:
@@ -459,56 +556,6 @@ async def view_participants(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"📊 Status: {user.get('status', 'N/A')}\n\n"
             )
         await update.message.reply_text(message, parse_mode="Markdown")
-
-async def check_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
-    user_data = users_collection.find_one({"user_id": user_id})
-    
-    if not user_data:
-        await update.message.reply_text(
-            "🚫 *Please start the bot with /start first.*",
-            parse_mode="Markdown"
-        )
-        return
-
-    # Check if the user has placed a bet
-    if not user_data.get("bet"):
-        await update.message.reply_text(
-            "🚫 *No Bet Placed!*\n\n"
-            "You have not placed any bet yet. Use the /bet command to place your bet.",
-            parse_mode="Markdown"
-        )
-        return
-
-    user_status = user_data["status"]
-    user_bet = user_data["bet"]  # Get the user's bet choice
-    if user_status == "approved":
-        await update.message.reply_text(
-            f"✅ *Payment Approved!*\n\n"
-            f"Your payment has been approved. You chose *{user_bet.upper()}*.\n"
-            "Thank you for participating! 🎉\n\n"
-            "Good luck! 🍀",
-            parse_mode="Markdown"
-        )
-    elif user_status == "disapproved":
-        await update.message.reply_text(
-            "❌ *Payment Disapproved!*\n\n"
-            "Your payment has been disapproved. Please contact the admin for further details. 📞",
-            parse_mode="Markdown"
-        )
-    elif user_status == "waiting":
-        await update.message.reply_text(
-            "⏳ *Payment Pending Approval*\n\n"
-            f"You chose *{user_bet.upper()}*.\n"
-            "Your payment screenshot is under review. Please wait for the admin to approve it. 🕒",
-            parse_mode="Markdown"
-        )
-    else:
-        await update.message.reply_text(
-            "🚫 *Unknown Status!*\n\n"
-            "Your status is unclear. Please contact the admin for assistance @matrix_betting_assistance_bot 📞",
-            parse_mode="Markdown"
-        )
 
 
 async def next_bet(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -614,7 +661,7 @@ async def view_winners(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.from_user.id != ADMIN_ID:
-        await update.message.reply_text("You are not authorized to perform this action.")
+        await update.message.reply_text("🚫 You are not authorized to perform this action.")
         return
 
     # Reset only users who have placed bets or made payments
@@ -622,7 +669,15 @@ async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pending_confirmations_collection.delete_many({})
     winners_collection.update_one({}, {"$set": {"winners": []}})
     results_collection.update_one({}, {"$set": {"heads": 0, "tails": 0}})
-    settings_collection.update_one({}, {"$set": {"available_slots": settings_collection.find_one()["total_slots"]}})
+
+    # Reset slots, next betting time, and result announcement time
+    settings_collection.update_one({}, {
+        "$set": {
+            "available_slots": settings_collection.find_one()["total_slots"],
+            "next_betting_time": None,  # Reset next betting time
+            "result_announcement_time": None  # Reset result announcement time
+        }
+    })
 
     # Notify all users
     for user in users_collection.find():
@@ -636,7 +691,12 @@ async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.error(f"Failed to send reset notification to user {user.get('user_id', 'unknown')}: {e}")
 
-    await update.message.reply_text("All participants and results have been reset, and users have been notified.")
+    await update.message.reply_text(
+        "✅ *Reset Complete!*\n\n"
+        "All participants, results, next betting time, and result announcement time have been reset.\n"
+        "Users have been notified.",
+        parse_mode="Markdown"
+    )
 
 async def admin_view(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.from_user.id != ADMIN_ID:
