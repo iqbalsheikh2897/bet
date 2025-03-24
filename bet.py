@@ -863,7 +863,8 @@ async def open_betting(update: Update, context: ContextTypes.DEFAULT_TYPE):
     settings_collection.update_one({}, {"$set": {"betting_open": True}})
     await update.message.reply_text(
         "✅ *Betting is Now Open!*\n\n"
-        "Users can now place their bets using the /bet command. 🎉",
+        "Users can now place their bets using the /bet command. 🎉"
+        "Join Fast @Matrix_Bettings",
         parse_mode="Markdown"
     )
 
@@ -873,7 +874,8 @@ async def open_betting(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_message(
                 chat_id=user["user_id"],
                 text="🎉 *Betting is Now Open!*\n\n"
-                     "Place your bets using the /bet command. Good luck! 🍀",
+                     "Place your bets using the /bet command. Good luck! 🍀"
+                     "Join Fast @Matrix_Bettings",
                 parse_mode="Markdown"
             )
         except Exception as e:
