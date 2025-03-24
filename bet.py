@@ -92,19 +92,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     help_text = (
-        "📜 *Game Rules and Commands* 📜\n\n"
-        "*Heads or Tails Betting Bot Rules:*\n"
+        "📜 <b>Game Rules and Commands</b> 📜\n\n"
+        "<b>Heads or Tails Betting Bot Rules:</b>\n"
         "1. You can place bets on either Heads or Tails.\n"
         "2. Each user can only place one bet until the betting round is reset.\n"
         "3. After placing a bet, you must send a payment screenshot for approval.\n"
         "4. Only approved bets will fill the available slots.\n"
         "5. 50rs is limited to bet\n\n"
-        "*Available Commands:*\n"
+        "<b>Available Commands:</b>\n"
         "👉 /start - Start the bot and see the welcome message.\n"
         "👉 For Any Kind Of Queries Or Help @matrix_betting_assistance_bot\n"
     )
-    await update.message.reply_text(help_text, parse_mode="Markdown")
-
+    await update.message.reply_text(help_text, parse_mode="HTML")
 
 async def bet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     settings = settings_collection.find_one()
