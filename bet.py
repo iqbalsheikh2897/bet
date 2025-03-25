@@ -490,44 +490,45 @@ async def view_results(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Check if results have been declared
         if results_data.get("heads", 0) == 0 and results_data.get("tails", 0) == 0:
             # No results yet
-            await update.message.reply_text(
-                "🎲 *Results Status*\n\n"
+            message_text = (
+                "🎲 <b>Results Status</b>\n\n"
                 "📢 The results are not declared yet.\n"
-                f"🕒 *Result Announcement Time*: {announcement_time}\n\n"
-                "Check back later! 🚀",
-                parse_mode="Markdown"
+                f"🕒 <b>Result Announcement Time</b>: {announcement_time}\n\n"
+                "Check back later! 🚀"
             )
+            await update.message.reply_text(message_text, parse_mode="HTML")
         else:
             # Results have been declared
-            await update.message.reply_text(
-                "🎲 *Results Declared!*\n\n"
-                f"✅ *Heads*: {results_data.get('heads', 0)} wins\n"
-                f"✅ *Tails*: {results_data.get('tails', 0)} wins\n\n"
-                f"🕒 *Result Announcement Time*: {announcement_time}\n\n"
-                "Thank you for participating! 🎉",
-                parse_mode="Markdown"
+            message_text = (
+                "🎲 <b>Results Declared!</b>\n\n"
+                f"✅ <b>Heads</b>: {results_data.get('heads', 0)} wins\n"
+                f"✅ <b>Tails</b>: {results_data.get('tails', 0)} wins\n\n"
+                f"🕒 <b>Result Announcement Time</b>: {announcement_time}\n\n"
+                "Thank you for participating! 🎉"
             )
+            await update.message.reply_text(message_text, parse_mode="HTML")
             
     except Exception as e:
         # Log the error and send a friendly message to the user
         logger.error(f"Error in view_results: {e}")
         await update.message.reply_text(
-            "❌ *Error*\n\n"
+            "❌ <b>Error</b>\n\n"
             "There was a problem retrieving the results. Please try again later or contact the admin.",
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
         
         # Notify admin about the error
         try:
             await context.bot.send_message(
                 chat_id=ADMIN_ID,
-                text=f"⚠️ *Error in /results command*\n\n"
+                text=f"⚠️ <b>Error in /results command</b>\n\n"
                      f"User: {update.effective_user.id} ({update.effective_user.full_name})\n"
                      f"Error: {str(e)}",
-                parse_mode="Markdown"
+                parse_mode="HTML"
             )
         except Exception:
             pass  # Ignore errors in error reporting
+
 
 
 async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
