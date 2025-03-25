@@ -84,8 +84,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "👉 /bet - Place your bet (Heads or Tails).\n"
         "👉 /status - Check your payment and bet status.\n"
         "👉 /results - View the latest results.\n"
-        "👉 /nextbet - Check the next betting time.\n"
-        "👉 /slots - Check available betting slots.\n\n"
+        "👉 /nextbet - Check the next betting time.\n\n"
         "Good luck! 🍀",
         parse_mode="Markdown"
     )
@@ -612,6 +611,16 @@ async def next_bet(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 async def view_slots(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Check if the user is an admin
+    if update.message.from_user.id != ADMIN_ID:
+        await update.message.reply_text(
+            "🚫 *You are not authorized to perform this action.*\n\n"
+            "This command is restricted to administrators only.",
+            parse_mode="Markdown"
+        )
+        return
+    
+    # If the user is an admin, proceed with showing slots information
     settings = settings_collection.find_one()
     await update.message.reply_text(
         f"🎰 *Available Slots*\n\n"
@@ -619,6 +628,7 @@ async def view_slots(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Hurry up and place your bet! 🎉",
         parse_mode="Markdown"
     )
+
 
 async def schedule_betting(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.from_user.id != ADMIN_ID:
@@ -757,6 +767,7 @@ async def admin_view(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "👉 /setannouncement <datetime> - Set the result announcement time.\n"
         "👉 /fixslots <number> - Set the total number of betting slots.\n"
         "👉 /showall - Show all users with count.\n"
+        "👉 /slots - Check available betting slots.\n"
         "👉 /open - Open betting for users.\n"
         "👉 /broadcast - Broadcast message.\n"
         "👉 /close - Close betting for users.\n\n"
