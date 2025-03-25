@@ -85,7 +85,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "👉 /status - Check your payment and bet status.\n"
         "👉 /results - View the latest results.\n"
         "👉 /nextbet - Check the next betting time.\n\n"
-        "Good luck! 🍀"
+        "Good luck! 🍀\n\n"
         "Join @Matrix_Bettings",
         parse_mode="Markdown"
     )
