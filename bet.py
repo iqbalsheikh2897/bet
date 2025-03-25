@@ -67,28 +67,34 @@ def generate_qr_code(user_id: int) -> BytesIO:
 
 # Command handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
-    user_data = users_collection.find_one({"user_id": user_id})
-    if not user_data:
-        users_collection.insert_one({
-            "user_id": user_id,
-            "name": update.message.from_user.full_name,
-            "bet": None,  # Initialize bet as None
-            "status": None,  # Initialize status as None
-            "payment_attempts": 0
-        })
-    await update.message.reply_text(
-        "🎉 *Welcome to the Heads or Tails Betting Bot!* 🎉\n\n"
-        "Here are the commands you can use:\n\n"
-        "👉 /start - Start the bot and see this message.\n"
-        "👉 /bet - Place your bet (Heads or Tails).\n"
-        "👉 /status - Check your payment and bet status.\n"
-        "👉 /results - View the latest results.\n"
-        "👉 /nextbet - Check the next betting time.\n\n"
-        "Good luck! 🍀\n\n"
-        "Join @Matrix_Bettings",
-        parse_mode="Markdown"
-    )
+    try:
+        user_id = update.message.from_user.id
+        logger.info(f"Start command received from user {user_id}")
+        
+        user_data = users_collection.find_one({"user_id": user_id})
+        if not user_data:
+            logger.info(f"Creating new user record for user {user_id}")
+            users_collection.insert_one({
+                "user_id": user_id,
+                "name": update.message.from_user.full_name,
+                "bet": None,
+                "status": None,
+                "payment_attempts": 0
+            })
+        
+        # Plain text welcome message without formatting
+        welcome_message = "Welcome to the Heads or Tails Betting Bot!\n\nUse /help to see available commands."
+        await update.message.reply_text(welcome_message)
+        logger.info(f"Basic welcome message sent to user {user_id}")
+        
+    except Exception as e:
+        logger.error(f"Error in start command: {e}")
+        # Try to send a minimal message
+        try:
+            await update.message.reply_text("Welcome! Use /help for assistance.")
+        except:
+            logger.error("Failed to send even basic message")
+
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     help_text = (
