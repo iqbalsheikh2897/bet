@@ -471,29 +471,64 @@ async def declare_result(update: Update, context: ContextTypes.DEFAULT_TYPE):
     settings_collection.update_one({}, {"$set": {"available_slots": settings_collection.find_one()["total_slots"]}})
 
 async def view_results(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    results_data = results_collection.find_one()
-    settings_data = settings_collection.find_one()  # Fetch settings data
-
-    if results_data["heads"] == 0 and results_data["tails"] == 0:
-        # If no results yet, show the announcement time if it's set
+    try:
+        # Fetch results data with error handling
+        results_data = results_collection.find_one()
+        if not results_data:
+            logger.warning("Results data not found in database")
+            results_data = {"heads": 0, "tails": 0}  # Default values
+        
+        # Fetch settings data with error handling
+        settings_data = settings_collection.find_one()
+        if not settings_data:
+            logger.warning("Settings data not found in database")
+            settings_data = {"result_announcement_time": "Not set"}  # Default values
+        
+        # Get announcement time with default value
         announcement_time = settings_data.get("result_announcement_time", "Not set")
+        
+        # Check if results have been declared
+        if results_data.get("heads", 0) == 0 and results_data.get("tails", 0) == 0:
+            # No results yet
+            await update.message.reply_text(
+                "🎲 *Results Status*\n\n"
+                "📢 The results are not declared yet.\n"
+                f"🕒 *Result Announcement Time*: {announcement_time}\n\n"
+                "Check back later! 🚀",
+                parse_mode="Markdown"
+            )
+        else:
+            # Results have been declared
+            await update.message.reply_text(
+                "🎲 *Results Declared!*\n\n"
+                f"✅ *Heads*: {results_data.get('heads', 0)} wins\n"
+                f"✅ *Tails*: {results_data.get('tails', 0)} wins\n\n"
+                f"🕒 *Result Announcement Time*: {announcement_time}\n\n"
+                "Thank you for participating! 🎉",
+                parse_mode="Markdown"
+            )
+            
+    except Exception as e:
+        # Log the error and send a friendly message to the user
+        logger.error(f"Error in view_results: {e}")
         await update.message.reply_text(
-            "🎲 *Results Status*\n\n"
-            "📢 The results are not declared yet.\n"
-            f"🕒 *Result Announcement Time*: {announcement_time}\n\n"
-            "Check back later! 🚀",
+            "❌ *Error*\n\n"
+            "There was a problem retrieving the results. Please try again later or contact the admin.",
             parse_mode="Markdown"
         )
-    else:
-        announcement_time = settings_data.get("result_announcement_time", "Not set")  # Get announcement time
-        await update.message.reply_text(
-            "🎲 *Results Declared!*\n\n"
-            f"✅ *Heads*: {results_data['heads']} wins\n"
-            f"✅ *Tails*: {results_data['tails']} wins\n\n"
-            f"🕒 *Result Announcement Time*: {announcement_time}\n\n"  # Include the announcement time
-            "Thank you for participating! 🎉",
-            parse_mode="Markdown"
-        )
+        
+        # Notify admin about the error
+        try:
+            await context.bot.send_message(
+                chat_id=ADMIN_ID,
+                text=f"⚠️ *Error in /results command*\n\n"
+                     f"User: {update.effective_user.id} ({update.effective_user.full_name})\n"
+                     f"Error: {str(e)}",
+                parse_mode="Markdown"
+            )
+        except Exception:
+            pass  # Ignore errors in error reporting
+
 
 async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.from_user.id != ADMIN_ID:
@@ -796,14 +831,21 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     # Fetch all users from the database
-    users = users_collection.find({})
+    users = list(users_collection.find({}))
+    total_users = len(users)
     
     # Counter for successful and failed sends
     success_count = 0
     fail_count = 0
+    skipped_count = 0
 
     # Send the message to all users
     for user in users:
+        if 'user_id' not in user:
+            logger.warning(f"Skipping user document without 'user_id': {user}")
+            skipped_count += 1
+            continue
+            
         try:
             await context.bot.send_message(
                 chat_id=user["user_id"],
@@ -815,15 +857,18 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.error(f"Failed to send broadcast message to user {user.get('user_id', 'unknown')}: {e}")
             fail_count += 1
 
-    # Send a summary of the broadcast to the admin
+    # Send a detailed summary of the broadcast to the admin
     await context.bot.send_message(
         chat_id=ADMIN_ID,
         text=f"📊 *Broadcast Summary*\n\n"
+             f"📋 Total users in database: *{total_users}*\n"
              f"✅ Successfully sent to: *{success_count}* users\n"
-             f"❌ Failed to send to: *{fail_count}* users\n\n"
+             f"❌ Failed to send to: *{fail_count}* users\n"
+             f"⏭️ Skipped (invalid user_id): *{skipped_count}* users\n\n"
              f"Message: {message}",
         parse_mode="Markdown"
     )
+
 
 async def close_betting(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.from_user.id != ADMIN_ID:
