@@ -85,7 +85,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "👉 /status - Check your payment and bet status.\n"
         "👉 /results - View the latest results.\n"
         "👉 /nextbet - Check the next betting time.\n\n"
-        "Good luck! 🍀",
+        "Good luck! 🍀"
+        "Join @Matrix_Bettings",
         parse_mode="Markdown"
     )
 
@@ -408,8 +409,10 @@ async def check_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     else:
         await update.message.reply_text(
-            "🚫 *Unknown Status!*\n\n"
-            "Your status is unclear. Please contact the admin for assistance. 📞",
+            "🚫 *Status!*\n\n"
+            "🚫 *Payment Screenshot not received!*\n\n"
+            "Your Payment is unclear. Please send the payment screen shot\n" 
+            "Contact the admin for assistance @Matrix_Betting_Assistance_Bot 📞",
             parse_mode="Markdown"
         )
 
