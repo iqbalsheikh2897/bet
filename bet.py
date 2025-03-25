@@ -83,15 +83,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             })
         
         # Plain text welcome message without formatting
-        welcome_message = '''🎉 *Welcome to the Heads or Tails Betting Bot!* 🎉\n\n"
-        "Here are the commands you can use:
-        👉 /start - Start the bot and see this message
-        👉 /bet - Place your bet (Heads or Tails)
-        👉 /status - Check your payment and bet status
-        👉 /results - View the latest results
-        👉 /nextbet - Check the next betting time
-        Good luck! 🍀
-        Join Channel @Matrix_Betting'''
+        welcome_message = '''🎉 *Welcome to the Heads or Tails Betting Bot!* 🎉\n\n
+Here are the commands you can use:
+👉 /start - Start the bot and see this message
+👉 /bet - Place your bet (Heads or Tails)
+👉 /status - Check your payment and bet status
+👉 /results - View the latest results
+👉 /nextbet - Check the next betting time
+Good luck! 🍀
+Join Channel @Matrix_Betting'''
         await update.message.reply_text(welcome_message)
         logger.info(f"Basic welcome message sent to user {user_id}")
         
